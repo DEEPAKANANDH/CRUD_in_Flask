@@ -1,0 +1,56 @@
+from flask import Flask, jsonify ,request
+from flask_sqlalchemy import SQLAlchemy
+app = Flask(__name__)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Deepak2003@localhost:3306/myfirstdb'
+db = SQLAlchemy(app)
+
+
+class Book(db.Model):
+    __tablename__ = 'books'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100))
+    author = db.Column(db.String(100))
+
+
+@app.route('/books', methods=['GET','POST'])
+def get_books():
+    if request.method == 'GET':
+        books = Book.query.all()
+        book_list = []
+        for book in books:
+            book_list.append({'id': book.id, 'title': book.title, 'author': book.author})
+        return jsonify(book_list)
+    else:
+        data = request.json
+        book = Book(title=data['title'], author=data['author'])
+        db.session.commit()
+        return jsonify({'message': 'Book added successfully'}), 201
+
+
+@app.route('/books/<int:id>', methods=['PUT'])
+def update_books(id):
+    book = Book.query.get(id)
+    if book not in Book.query.all():
+        return jsonify({'message': 'Book not found'}), 404
+    else:
+        data = request.json
+        book.title = data['title']
+        book.author = data['author']
+        db.session.commit()
+        return jsonify({'message': 'Book updated successfully'}), 200
+
+
+@app.route('/books/<int:id>',methods=['DELETE'])
+def delete_books(id):
+    book = Book.query.get(id)
+    if book in Book.query.all():
+        db.session.delete(book)
+        db.session.commit()
+        return jsonify({'message': 'Book deleted successfully'}), 200
+    else:
+        return jsonify({'message': 'Book not found'}), 404
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
